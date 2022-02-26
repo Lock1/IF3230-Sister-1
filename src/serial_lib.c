@@ -42,13 +42,13 @@ void init_matrix(Matrix *m, int nrow, int ncol) {
  *
  * Returns a matrix with values from stdin input
  * */
-Matrix input_matrix(int nrow, int ncol) {
+Matrix input_matrix(FILE *fptr, int nrow, int ncol) {
 	Matrix input;
 	init_matrix(&input, nrow, ncol);
 
 	for (int i = 0; i < nrow; i++) {
 		for (int j = 0; j < ncol; j++) {
-			scanf("%d", &input.mat[i][j]);
+			fscanf(fptr, "%d", &input.mat[i][j]);
 		}
 	}
 
