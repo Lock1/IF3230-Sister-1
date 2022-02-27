@@ -10,6 +10,7 @@ int kernel_row, kernel_col, target_row, target_col, num_targets;
 int rank;
 int world_size;
 int container_size;
+int *matrix_ranges;
 Matrix kernel;
 Matrix *target_container;
 FILE *fptr;
@@ -25,10 +26,13 @@ void sanity_check() {
     );
 }
 
+int cmpfunc(const void *a, const void *b) {
+    return *(int*) a - *(int*) b;
+}
+
 
 void process_convolution() {
-    // int *matrix_ranges = (int *) malloc(container_size);
-    int matrix_ranges[container_size];
+    matrix_ranges = (int*) malloc(sizeof(int) * container_size);
 
     #pragma omp parallel num_threads(container_size)
     {
@@ -39,21 +43,6 @@ void process_convolution() {
         target_container[thread_id] = convolution(&kernel, &(target_container[thread_id]));
         matrix_ranges[thread_id]    = get_matrix_datarange(&(target_container[thread_id]));
     }
-
-    printf("<%d> ", rank);
-    print_array(matrix_ranges, container_size);
-    merge_sort(matrix_ranges, 0, container_size - 1);
-    printf("<%d> ", rank);
-    print_array(matrix_ranges, container_size);
-
-    int median = get_median(matrix_ranges, container_size);
-    int floored_mean = get_floored_mean(matrix_ranges, container_size);
-
-    printf("%d\n%d\n%d\n%d\n",
-        matrix_ranges[0],
-        matrix_ranges[container_size - 1],
-        median,
-        floored_mean);
 }
 
 void init_broadcast_routine() {
@@ -94,19 +83,55 @@ void distribute_target_matrix() {
             for (int j = 0; j < target_row; j++) {
                 MPI_Status retcode;
                 MPI_Recv(&(target_container[i].mat[j]), target_col, MPI_INT, 0, 0, MPI_COMM_WORLD, &retcode);
-                // TODO : Check again
             }
         }
     }
 }
+
+void merge_and_summary_result() {
+    if (rank == 0) {
+        // Penerimaan hasil dengan MPI
+        int *full_ranges = (int*) malloc(sizeof(int) * num_targets);
+        for (int i = 0; i < num_targets; i++) {
+            int rank_target = i / (num_targets / world_size);
+
+            if (rank_target == 0)
+                full_ranges[i] = matrix_ranges[i];
+            else {
+                if (rank_target == world_size)
+                    rank_target -= 1;
+
+                MPI_Status retcode;
+                MPI_Recv(&(full_ranges[i]), 1, MPI_INT, rank_target, 0, MPI_COMM_WORLD, &retcode);
+            }
+        }
+
+        // Summary
+        qsort(full_ranges, num_targets, sizeof(int), cmpfunc);
+        int median       = get_median(full_ranges, num_targets);
+        int floored_mean = get_floored_mean(full_ranges, num_targets);
+
+        printf("%d\n%d\n%d\n%d\n",
+            full_ranges[0],
+            full_ranges[num_targets - 1],
+            median,
+            floored_mean);
+    }
+    else {
+        // Pengiriman hasil dengan MPI
+        for (int i = 0; i < container_size; i++)
+            MPI_Send(&(matrix_ranges[i]), 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    }
+}
+
 
 int main(int argc, char *argv[]) {
     MPI_Init(NULL, NULL);
 
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    // Baca file test case
     if (rank == 0) {
-        // Baca file test case
         fptr = fopen(argv[1], "r");
         if (!fptr) {
             printf("Cannot open file\n");
@@ -121,6 +146,7 @@ int main(int argc, char *argv[]) {
     // Broadcasting metadata dan matriks kernel
     init_broadcast_routine();
 
+    // Distribusi matriks target ke proses
     // Asumsi : Banyak matriks target >= proses
     if (rank != world_size - 1)
         container_size = num_targets / world_size;
@@ -130,8 +156,11 @@ int main(int argc, char *argv[]) {
 
     distribute_target_matrix();
 
+    // Proses konvolusi dengan OpenMP
     process_convolution();
 
+    // Merge dan tampilkan summary hasil konvolusi
+    merge_and_summary_result();
 
     MPI_Finalize();
     return 0;
