@@ -35,7 +35,8 @@ Hal itu sesuai dengan prediksi bahwa program paralel membutuhkan proses komunika
 ## 4. Testing Dengan Node
 Berikut adalah hasil untuk 2 node/5 thread dan 4 node/16 thread program
 
-![serial](./other/img/2node_5thread.jpg) \
+![2n5t](./other/img/2node_5thread.jpg) \
+![4n16t](./other/img/4node_16thread.jpg) 
 
 Mirip dengan perbedaan serial-paralel pada proses lokal, pada test case 1 waktu yang dibutuhkan 10x lebih lama dibandingkan serial.
 Namun seiring dengan ditambahnya node, kecepatan pemrosesan untuk data yang besar seperti test case 4 mengalami percepatan
