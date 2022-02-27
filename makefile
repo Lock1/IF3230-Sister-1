@@ -1,3 +1,5 @@
+PROCESS := 8
+
 serial:
 	gcc -Wall -Wextra -o bin/serial other/serial.c
 
@@ -6,27 +8,25 @@ parallel:
 
 
 test-serial: serial
-	cat other/testcase/K04-06-TC1 | ./bin/serial
-	cat other/testcase/K04-06-TC2 | ./bin/serial
-	cat other/testcase/K04-06-TC3 | ./bin/serial
-	cat other/testcase/K04-06-TC4 | ./bin/serial
+	@for tc in other/testcase/*; do \
+		echo "$${tc}"; cat $${tc} | ./bin/serial; \
+	done
 
 test-parallel: parallel
-	mpirun -n 8 bin/parallel other/testcase/K04-06-TC1
-	mpirun -n 8 bin/parallel other/testcase/K04-06-TC2
-	mpirun -n 8 bin/parallel other/testcase/K04-06-TC3
-	mpirun -n 8 bin/parallel other/testcase/K04-06-TC4
+	@for tc in other/testcase/*; do \
+		echo "$${tc}"; mpirun -n ${PROCESS} bin/parallel $${tc}; \
+	done
 
 diff-test: serial parallel
-	cat other/testcase/K04-06-TC1 | ./bin/serial > bin/ser-tc1.txt
-	cat other/testcase/K04-06-TC2 | ./bin/serial > bin/ser-tc2.txt
-	cat other/testcase/K04-06-TC3 | ./bin/serial > bin/ser-tc3.txt
-	cat other/testcase/K04-06-TC4 | ./bin/serial > bin/ser-tc4.txt
-	mpirun -n 8 bin/parallel other/testcase/K04-06-TC1 > bin/par-tc1.txt
-	mpirun -n 8 bin/parallel other/testcase/K04-06-TC2 > bin/par-tc2.txt
-	mpirun -n 8 bin/parallel other/testcase/K04-06-TC3 > bin/par-tc3.txt
-	mpirun -n 8 bin/parallel other/testcase/K04-06-TC4 > bin/par-tc4.txt
-	diff bin/ser-tc1.txt bin/par-tc1.txt
-	diff bin/ser-tc2.txt bin/par-tc2.txt
-	diff bin/ser-tc3.txt bin/par-tc3.txt
-	diff bin/ser-tc4.txt bin/par-tc4.txt
+	cat other/testcase/K04-06-TC1 | ./bin/serial > result/K04-06-TC1_serial.txt
+	cat other/testcase/K04-06-TC2 | ./bin/serial > result/K04-06-TC2_serial.txt
+	cat other/testcase/K04-06-TC3 | ./bin/serial > result/K04-06-TC3_serial.txt
+	cat other/testcase/K04-06-TC4 | ./bin/serial > result/K04-06-TC4_serial.txt
+	mpirun -n ${PROCESS} bin/parallel other/testcase/K04-06-TC1 > result/K04-06-TC1_paralel.txt
+	mpirun -n ${PROCESS} bin/parallel other/testcase/K04-06-TC2 > result/K04-06-TC2_paralel.txt
+	mpirun -n ${PROCESS} bin/parallel other/testcase/K04-06-TC3 > result/K04-06-TC3_paralel.txt
+	mpirun -n ${PROCESS} bin/parallel other/testcase/K04-06-TC4 > result/K04-06-TC4_paralel.txt
+	diff result/K04-06-TC1_serial.txt result/K04-06-TC1_paralel.txt
+	diff result/K04-06-TC2_serial.txt result/K04-06-TC2_paralel.txt
+	diff result/K04-06-TC3_serial.txt result/K04-06-TC3_paralel.txt
+	diff result/K04-06-TC4_serial.txt result/K04-06-TC4_paralel.txt
