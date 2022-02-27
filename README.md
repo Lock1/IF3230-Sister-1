@@ -16,10 +16,10 @@ Pembacaan dimulai dari awal file hingga ukuran matriks target dan num_targets.
 
 ## 2. Waktu Eksekusi Program
 Testing dijalankan pada Ryzen 4800H (8 Cores / 16 Threads). Berikut adalah waktu eksekusi program serial dan paralel dengan
-8 process dan 4 thread dijalankan pada mesin lokal \
+8 process dan 4 thread dijalankan pada mesin lokal
 
 ![serial](./other/img/serial-test.jpg) \
-![parallel](./other/img/parallel-test.jpg) \
+![parallel](./other/img/parallel-test.jpg)
 
 ## 3. Analisis Serial dan Paralel
  Setelah melakukan testing, pada umumnya tiga test case awal
