@@ -36,10 +36,10 @@ int cmpfunc(const void *a, const void *b) {
 void process_convolution() {
     matrix_ranges = (int*) malloc(sizeof(int) * container_size);
 
-    int tid_offset = 0;
-    do {
-        #pragma omp parallel num_threads(thread_size)
-        {
+    #pragma omp parallel num_threads(thread_size)
+    {
+        int tid_offset = 0;
+        do {
             int thread_id;
             thread_id   = omp_get_thread_num();
 
@@ -48,10 +48,9 @@ void process_convolution() {
                 target_container[target_matrix_idx] = convolution(&kernel, &(target_container[target_matrix_idx]));
                 matrix_ranges[target_matrix_idx]    = get_matrix_datarange(&(target_container[target_matrix_idx]));
             }
-        }
-        tid_offset += thread_size;
+            tid_offset += thread_size;
+        } while (tid_offset < container_size);
     }
-    while (tid_offset < container_size);
 }
 
 void init_broadcast_routine() {

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define NMAX 100
 #define DATAMAX 1000
@@ -265,7 +266,7 @@ int main(int argc, char const *argv[]) {
 			median,
 			floored_mean);
 
-	if (argc > 1) {
+	if (argc > 1 && !strcmp("-timer", argv[1])) {
 		timer = clock() - timer;
 		double time_elapsed = ((double) timer) / CLOCKS_PER_SEC;
 		printf("Time elapsed %f\n", time_elapsed);
