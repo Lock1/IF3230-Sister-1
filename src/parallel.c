@@ -27,40 +27,33 @@ void sanity_check() {
 
 
 void process_convolution() {
-    // #pragma omp parallel num_threads(8)
-    // {
-        //     int nthreads, tid;
-        //     nthreads = omp_get_num_threads();
-        //     tid = omp_get_thread_num();
-        //     printf("Hello world from processor %s, rank %d out of %d processors, from thread %d out of %d threads\n", processor_name, world_rank, world_size, tid, nthreads);
-        // }
-    // reads kernel's row and column and initalize kernel matrix from input
+    // int *matrix_ranges = (int *) malloc(container_size);
+    int matrix_ranges[container_size];
 
-    // reads number of target matrices and their dimensions.
-    // initialize array of matrices and array of data ranges (int)
-    // scanf("%d %d %d", &num_targets, &target_row, &target_col);
-    // Matrix* arr_mat = (Matrix*) malloc(num_targets * sizeof(Matrix));
-    // int arr_range[num_targets];
-    //
-    // // read each target matrix, compute their convolution matrices, and compute their data ranges
-    // for (int i = 0; i < num_targets; i++) {
-    //     arr_mat[i] = input_matrix(target_row, target_col);
-    //     arr_mat[i] = convolution(&kernel, &arr_mat[i]);
-    //     arr_range[i] = get_matrix_datarange(&arr_mat[i]);
-    // }
-    //
-    // // sort the data range array
-    // merge_sort(arr_range, 0, num_targets - 1);
-    //
-    // int median = get_median(arr_range, num_targets);
-    // int floored_mean = get_floored_mean(arr_range, num_targets);
-    //
-    // // print the min, max, median, and floored mean of data range array
-    // printf("%d\n%d\n%d\n%d\n",
-    //     arr_range[0],
-    //     arr_range[num_targets - 1],
-    //     median,
-    //     floored_mean);
+    #pragma omp parallel num_threads(container_size)
+    {
+        int thread_size, thread_id;
+        thread_size = omp_get_num_threads();
+        thread_id   = omp_get_thread_num();
+
+        target_container[thread_id] = convolution(&kernel, &(target_container[thread_id]));
+        matrix_ranges[thread_id]    = get_matrix_datarange(&(target_container[thread_id]));
+    }
+
+    printf("<%d> ", rank);
+    print_array(matrix_ranges, container_size);
+    merge_sort(matrix_ranges, 0, container_size - 1);
+    printf("<%d> ", rank);
+    print_array(matrix_ranges, container_size);
+
+    int median = get_median(matrix_ranges, container_size);
+    int floored_mean = get_floored_mean(matrix_ranges, container_size);
+
+    printf("%d\n%d\n%d\n%d\n",
+        matrix_ranges[0],
+        matrix_ranges[container_size - 1],
+        median,
+        floored_mean);
 }
 
 void init_broadcast_routine() {
@@ -101,6 +94,7 @@ void distribute_target_matrix() {
             for (int j = 0; j < target_row; j++) {
                 MPI_Status retcode;
                 MPI_Recv(&(target_container[i].mat[j]), target_col, MPI_INT, 0, 0, MPI_COMM_WORLD, &retcode);
+                // TODO : Check again
             }
         }
     }
@@ -136,7 +130,7 @@ int main(int argc, char *argv[]) {
 
     distribute_target_matrix();
 
-    // process_convolution();
+    process_convolution();
 
 
     MPI_Finalize();
