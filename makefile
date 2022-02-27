@@ -57,7 +57,9 @@ scp-node:
 	scp -i ${KEY} bin/parallel ${NODE_2}:~/bin/parallel
 	scp -i ${KEY} bin/parallel ${NODE_3}:~/bin/parallel
 	scp -i ${KEY} bin/parallel ${NODE_4}:~/bin/parallel
-	scp -i ${KEY} other/hostfile ${NODE_1}:~/bin/hostfile
+	scp -i ${KEY} other/2host ${NODE_1}:~/bin/2host
+	scp -i ${KEY} other/3host ${NODE_1}:~/bin/3host
+	scp -i ${KEY} other/4host ${NODE_1}:~/bin/4host
 	scp -i ${KEY} other/testcase/K04-06-TC1 ${NODE_1}:~/bin/tc1
 	scp -i ${KEY} other/testcase/K04-06-TC2 ${NODE_1}:~/bin/tc2
 	scp -i ${KEY} other/testcase/K04-06-TC3 ${NODE_1}:~/bin/tc3

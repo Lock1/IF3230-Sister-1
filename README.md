@@ -33,7 +33,18 @@ Hal itu sesuai dengan prediksi bahwa program paralel membutuhkan proses komunika
  yang kecil.
 
 ## 4. Testing Dengan Node
-**TBA**
+Berikut adalah hasil untuk 2 node/5 thread dan 4 node/16 thread program
+
+![serial](./other/img/2node_5thread.jpg) \
+
+Mirip dengan perbedaan serial-paralel pada proses lokal, pada test case 1 waktu yang dibutuhkan 10x lebih lama dibandingkan serial.
+Namun seiring dengan ditambahnya node, kecepatan pemrosesan untuk data yang besar seperti test case 4 mengalami percepatan
+dibandingkan program serial. Hasil analisis performa paralel program mirip dengan serial-paralel sebelumnya, semakin banyak data
+yang diproses, semakin berkurang relevansi overhead dan semakin cepat algoritma dijalankan. Khususnya pada test case 4,
+terlihat bahwa jalur komunikasi dapat mempengaruhi kecepatan eksekusi program. Program lokal yang dijalankan dengan 4 proses
+jika dibandingkan dengan program yang berjalan diatas 4 node akan lebih cepat dikarenakan proses yang berkomunikasi dalam satu
+sistem operasi lebih cepat secara latensi dibandingkan saluran networking.
+
 
 ## Referensi
 1. https://docs.microsoft.com/en-us/message-passing-interface
