@@ -12,6 +12,7 @@ int rank;
 int world_size;
 int container_size;
 int *matrix_ranges;
+int thread_size;
 Matrix kernel;
 Matrix *target_container;
 FILE *fptr;
@@ -35,15 +36,22 @@ int cmpfunc(const void *a, const void *b) {
 void process_convolution() {
     matrix_ranges = (int*) malloc(sizeof(int) * container_size);
 
-    #pragma omp parallel num_threads(container_size)
-    {
-        int thread_size, thread_id;
-        thread_size = omp_get_num_threads();
-        thread_id   = omp_get_thread_num();
+    int tid_offset = 0;
+    do {
+        #pragma omp parallel num_threads(thread_size)
+        {
+            int thread_id;
+            thread_id   = omp_get_thread_num();
 
-        target_container[thread_id] = convolution(&kernel, &(target_container[thread_id]));
-        matrix_ranges[thread_id]    = get_matrix_datarange(&(target_container[thread_id]));
+            int target_matrix_idx = thread_id + tid_offset;
+            if (target_matrix_idx < container_size) {
+                target_container[target_matrix_idx] = convolution(&kernel, &(target_container[target_matrix_idx]));
+                matrix_ranges[target_matrix_idx]    = get_matrix_datarange(&(target_container[target_matrix_idx]));
+            }
+        }
+        tid_offset += thread_size;
     }
+    while (tid_offset < container_size);
 }
 
 void init_broadcast_routine() {
@@ -52,6 +60,7 @@ void init_broadcast_routine() {
     MPI_Bcast(&target_row, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&target_col, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&num_targets, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&thread_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     if (rank != 0)
         init_matrix(&kernel, kernel_row, kernel_col);
@@ -133,7 +142,7 @@ int main(int argc, char *argv[]) {
 
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    // Baca file test case
+    // Baca file test case dan setup thread
     if (rank == 0) {
         fptr = fopen(argv[1], "r");
         if (!fptr) {
@@ -144,6 +153,8 @@ int main(int argc, char *argv[]) {
         fscanf(fptr, "%d %d", &kernel_row, &kernel_col);
         kernel = input_matrix(fptr, kernel_row, kernel_col);
         fscanf(fptr, "%d %d %d", &num_targets, &target_row, &target_col);
+
+        sscanf(argv[2], "%d", &thread_size);
     }
 
     // Broadcasting metadata dan matriks kernel
@@ -166,7 +177,7 @@ int main(int argc, char *argv[]) {
     merge_and_summary_result();
 
     MPI_Finalize();
-    if (rank == 0 && argc > 2) {
+    if (rank == 0 && argc > 3) {
         timer = clock() - timer;
         double time_elapsed = ((double) timer) / CLOCKS_PER_SEC;
         printf("Time elapsed %f\n", time_elapsed);
