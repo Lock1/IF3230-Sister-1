@@ -9,12 +9,12 @@ parallel:
 
 test-serial: serial
 	@for tc in other/testcase/*; do \
-		echo "$${tc}"; cat $${tc} | ./bin/serial; \
+		echo "$${tc}"; cat $${tc} | ./bin/serial -timer; \
 	done
 
 test-parallel: parallel
 	@for tc in other/testcase/*; do \
-		echo "$${tc}"; mpirun -n ${PROCESS} bin/parallel $${tc}; \
+		echo "$${tc}"; mpirun -n ${PROCESS} bin/parallel $${tc} -timer; \
 	done
 
 diff-test: serial parallel

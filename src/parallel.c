@@ -1,6 +1,7 @@
 #include <mpi.h>
 #include <omp.h>
 #include <stdio.h>
+#include <time.h>
 #include <stdlib.h>
 
 #include "serial_lib.c"
@@ -126,6 +127,8 @@ void merge_and_summary_result() {
 
 
 int main(int argc, char *argv[]) {
+    clock_t timer;
+    timer = clock();
     MPI_Init(NULL, NULL);
 
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -163,5 +166,10 @@ int main(int argc, char *argv[]) {
     merge_and_summary_result();
 
     MPI_Finalize();
+    if (rank == 0 && argc > 2) {
+        timer = clock() - timer;
+        double time_elapsed = ((double) timer) / CLOCKS_PER_SEC;
+        printf("Time elapsed %f\n", time_elapsed);
+    }
     return 0;
 }
