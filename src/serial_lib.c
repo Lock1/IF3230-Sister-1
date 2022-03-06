@@ -142,7 +142,7 @@ Matrix convolution(Matrix *kernel, Matrix *target) {
 void merge_array(int *n, int left, int mid, int right) {
 	int n_left = mid - left + 1;
 	int n_right = right - mid;
-	int iter_left = 0, iter_right = 0, iter_merged = 0;
+	int iter_left = 0, iter_right = 0, iter_merged = left;
 	int arr_left[n_left], arr_right[n_right];
 
 	for (int i = 0; i < n_left; i++) {
@@ -155,15 +155,19 @@ void merge_array(int *n, int left, int mid, int right) {
 
 	while (iter_left < n_left && iter_right < n_right) {
 		if (arr_left[iter_left] <= arr_right[iter_right]) {
-			n[iter_merged++] = arr_left[iter_left++];
+			n[iter_merged] = arr_left[iter_left++];
 		} else {
-			n[iter_merged++] = arr_right[iter_right++];
+			n[iter_merged] = arr_right[iter_right++];
 		}
-
+		iter_merged++;
 	}
 
-	while (iter_left < n_left) n[iter_merged++] = arr_left[iter_left++];
-	while (iter_right < n_right) n[iter_merged++] = arr_right[iter_right++];
+	while (iter_left < n_left)  {
+		n[iter_merged++] = arr_left[iter_left++];
+	}
+	while (iter_right < n_right) {
+		n[iter_merged++] = arr_right[iter_right++];
+	}
 }
 
 
@@ -182,7 +186,6 @@ void merge_sort(int *n, int left, int right) {
 		merge_array(n, left, mid, right);
 	}
 }
-
 
 /*
  * Procedure print_array
