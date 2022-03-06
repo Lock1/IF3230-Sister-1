@@ -97,26 +97,51 @@ void distribute_target_matrix() {
     }
 }
 
+void concat_array(int **dst, int dsize, int *src, int ssize) {
+    int *new = (int *) malloc(sizeof(int) * (dsize + ssize));
+
+    for (int i = 0; i < dsize; i++)
+        new[i] = (*dst)[i];
+
+    for (int i = 0; i < ssize; i++)
+        new[dsize + i] = src[i];
+
+    *dst = new;
+}
+
 void merge_and_summary_result() {
-    if (rank == 0) {
-        // Penerimaan hasil dengan MPI
-        int *full_ranges = (int*) malloc(sizeof(int) * num_targets);
-        for (int i = 0; i < num_targets; i++) {
-            int rank_target = i / (num_targets / world_size);
+    int *full_ranges = matrix_ranges;
 
-            if (rank_target == 0)
-                full_ranges[i] = matrix_ranges[i];
-            else {
-                if (rank_target == world_size)
-                    rank_target -= 1;
-
+    // Tree 2^n
+    int pow = 0;
+    int current_stride  = (1 << pow);
+    int reciever_stride = (1 << (pow + 1));
+    while (current_stride <= num_targets) {
+        if (rank % reciever_stride == 0) {
+            int rank_target = rank + current_stride;
+            if (rank_target < world_size) {
                 MPI_Status retcode;
-                MPI_Recv(&(full_ranges[i]), 1, MPI_INT, rank_target, 0, MPI_COMM_WORLD, &retcode);
+                int cont_recv_size;
+                MPI_Recv(&cont_recv_size, 1, MPI_INT, rank_target, 0, MPI_COMM_WORLD, &retcode);
+                int *temp_arr = (int *) malloc(sizeof(int) * cont_recv_size);
+                MPI_Recv(temp_arr, cont_recv_size, MPI_INT, rank_target, 0, MPI_COMM_WORLD, &retcode);
+                concat_array(&full_ranges, container_size, temp_arr, cont_recv_size);
+                container_size += cont_recv_size;
+                merge_sort(full_ranges, 0, container_size - 1);
             }
         }
+        else if (rank % current_stride == 0) {
+            int rank_target = rank - current_stride;
+            MPI_Send(&container_size, 1, MPI_INT, rank_target, 0, MPI_COMM_WORLD);
+            MPI_Send(full_ranges, container_size, MPI_INT, rank_target, 0, MPI_COMM_WORLD);
+        }
 
-        // Summary
-        qsort(full_ranges, num_targets, sizeof(int), cmpfunc);
+        pow++;
+        current_stride  = (1 << pow);
+        reciever_stride = (1 << (pow + 1));
+    }
+
+    if (rank == 0) {
         int median       = get_median(full_ranges, num_targets);
         int floored_mean = get_floored_mean(full_ranges, num_targets);
 
@@ -126,11 +151,42 @@ void merge_and_summary_result() {
             median,
             floored_mean);
     }
-    else {
-        // Pengiriman hasil dengan MPI
-        for (int i = 0; i < container_size; i++)
-            MPI_Send(&(matrix_ranges[i]), 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
-    }
+
+
+    // Simple gather
+    // if (rank == 0) {
+    //     // Penerimaan hasil dengan MPI
+    //     int *full_ranges = (int*) malloc(sizeof(int) * num_targets);
+    //     for (int i = 0; i < num_targets; i++) {
+    //         int rank_target = i / (num_targets / world_size);
+    //
+    //         if (rank_target == 0)
+    //             full_ranges[i] = matrix_ranges[i];
+    //         else {
+    //             if (rank_target == world_size)
+    //                 rank_target -= 1;
+    //
+    //             MPI_Status retcode;
+    //             MPI_Recv(&(full_ranges[i]), 1, MPI_INT, rank_target, 0, MPI_COMM_WORLD, &retcode);
+    //         }
+    //     }
+    //
+    //     // Summary
+    //     qsort(full_ranges, num_targets, sizeof(int), cmpfunc);
+    //     int median       = get_median(full_ranges, num_targets);
+    //     int floored_mean = get_floored_mean(full_ranges, num_targets);
+    //
+    //     printf("%d\n%d\n%d\n%d\n",
+    //         full_ranges[0],
+    //         full_ranges[num_targets - 1],
+    //         median,
+    //         floored_mean);
+    // }
+    // else {
+    //     // Pengiriman hasil dengan MPI
+    //     for (int i = 0; i < container_size; i++)
+    //         MPI_Send(&(matrix_ranges[i]), 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    // }
 }
 
 
